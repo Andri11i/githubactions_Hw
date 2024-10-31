@@ -1,0 +1,40 @@
+name: CI for ASP.NET WebAPI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'  
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Code Analysis
+      run: dotnet format --verify-no-changes
+      continue-on-error: true 
+
+    - name: Auto-Fix Code Formatting
+      if: failure() && github.event_name == 'push' 
+      run: dotnet format --verify-no-changes || dotnet format --no-restore
+      continue-on-error: false
+
+    - name: Build the Project
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run Unit Tests
+      run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=test_results.trx"
